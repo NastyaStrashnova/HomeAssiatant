@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Assistant</title>
+  <style>
+    /* Cosmic Visual Design */
+    :root {
+      --space: #0a0e17;
+      --neon-blue: #00f7ff;
+      --neon-purple: #9757ff;
+      --plasma: #ff2a78;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--space);
+      background-image: 
+        radial-gradient(circle at 20% 30%, rgba(151, 87, 255, 0.1) 0%, transparent 20%),
+        radial-gradient(circle at 80% 70%, rgba(255, 42, 120, 0.1) 0%, transparent 20%);
+      font-family: 'Segoe UI', sans-serif;
+      color: white;
+      overflow-x: hidden;
+    }
+    
+    .container {
+      width: 90%;
+      max-width: 600px;
+      background: rgba(10, 14, 23, 0.8);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 
+        0 0 20px rgba(0, 247, 255, 0.2),
+        0 0 40px rgba(151, 87, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        to bottom right,
+        transparent 0%,
+        rgba(0, 247, 255, 0.05) 50%,
+        transparent 100%
+      );
+      animation: cosmicGlow 15s linear infinite;
+      z-index: -1;
+    }
+    
+    @keyframes cosmicGlow {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 2.2rem;
+      background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 15px rgba(0, 247, 255, 0.3);
+    }
+    
+    /* Microphone Button */
+    #recordButton {
+      display: block;
+      margin: 2rem auto;
+      padding: 1rem 2rem;
+      background: rgba(0, 247, 255, 0.1);
+      color: white;
+      border: 2px solid var(--neon-blue);
+      border-radius: 50px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(5px);
+      box-shadow: 0 0 15px rgba(0, 247, 255, 0.2);
+    }
+    
+    #recordButton:hover {
+      background: rgba(0, 247, 255, 0.2);
+      box-shadow: 0 0 25px rgba(0, 247, 255, 0.4);
+    }
+    
+    #recordButton.recording {
+      background: rgba(255, 42, 120, 0.2);
+      border-color: var(--plasma);
+      box-shadow: 0 0 25px rgba(255, 42, 120, 0.4);
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 42, 120, 0.4); }
+      70% { box-shadow: 0 0 0 15px rgba(255, 42, 120, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 42, 120, 0); }
+    }
+    
+    /* Status Indicators */
+    #status {
+      text-align: center;
+      margin: 1.5rem 0;
+      min-height: 1.5rem;
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Result Displays */
+    .result-box {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      border-left: 3px solid var(--neon-purple);
+    }
+    
+    .result-box p {
+      margin: 0;
+      line-height: 1.6;
+    }
+    
+    #transcription {
+      font-size: 1.1rem;
+      color: white;
+    }
+    
+    #intent {
+      color: var(--neon-blue);
+      font-weight: bold;
+    }
+    
+    /* Floating particles */
+    .particle {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      opacity: 0.5;
+      z-index: -1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Cosmic Voice Assistant</h1>
+    
+    <button id="recordButton" onclick="toggleRecording()">
+      <span id="buttonText">Start Recording</span>
+    </button>
+    
+    <p id="status">Ready to record</p>
+    
+    <div class="result-box">
+      <p id="transcription">Your speech will appear here...</p>
+    </div>
+    
+    <div class="result-box">
+      <p id="intent">Intent will be displayed here</p>
+    </div>
+  </div>
+
+  <script>
+    // EXACT SAME FUNCTIONALITY AS YOUR ORIGINAL CODE
+    let isRecording = false;
+    let mediaRecorder;
+    let audioChunks = [];
+
+    async function toggleRecording() {
+      const button = document.getElementById("recordButton");
+      const buttonText = document.getElementById("buttonText");
+      const status = document.getElementById("status");
+      
+      if (isRecording) {
+        mediaRecorder.stop();
+        button.classList.remove("recording");
+        buttonText.innerText = "Start Recording";
+        status.innerText = "Processing your speech...";
+      } else {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+
+          mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+          };
+
+          mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            sendAudioToServer(audioBlob);
+            audioChunks = [];
+          };
+
+          mediaRecorder.start();
+          button.classList.add("recording");
+          buttonText.innerText = "Stop Recording";
+          status.innerText = "Recording... Speak now";
+        } catch (error) {
+          console.error("Error accessing microphone:", error);
+          status.innerText = "Error accessing microphone";
+        }
+      }
+
+      isRecording = !isRecording;
+    }
+
+    async function sendAudioToServer(audioBlob) {
+      const status = document.getElementById("status");
+      const transcription = document.getElementById("transcription");
+      const intent = document.getElementById("intent");
+      
+      try {
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'audio.wav');
+
+        const response = await fetch('http://127.0.0.1:8000/transcribe/', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        const data = await response.json();
+        transcription.innerText = data.transcription || "No transcription returned";
+        intent.innerText = data.intent ? "Intent: " + data.intent : "No intent detected";
+        status.innerText = "Processing complete";
+      } catch (error) {
+        console.error("Error:", error);
+        transcription.innerText = "Error processing audio";
+        intent.innerText = "Intent: Error";
+        status.innerText = "Failed to process";
+      }
+    }
+
+    // Create floating particles (cosmetic only)
+    function createParticles() {
+      const container = document.querySelector('.container');
+      for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        
+        // Random properties
+        const size = Math.random() * 3 + 1;
+        const posX = Math.random() * 100;
+        const posY = Math.random() * 100;
+        const opacity = Math.random() * 0.3 + 0.1;
+        const duration = Math.random() * 20 + 10;
+        
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.left = `${posX}%`;
+        particle.style.top = `${posY}%`;
+        particle.style.opacity = opacity;
+        particle.style.animation = `float ${duration}s infinite`;
+        
+        container.appendChild(particle);
+      }
+    }
+    
+    // Start animation when page loads
+    document.addEventListener('DOMContentLoaded', createParticles);
+  </script>
+</body>
+</html>

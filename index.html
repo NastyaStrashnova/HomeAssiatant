@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Assistant loser</title>
+  <script>
+    let isRecording = false;
+    let mediaRecorder;
+    let audioChunks = [];
+
+    async function toggleRecording() {
+      if (isRecording) {
+        mediaRecorder.stop();
+        document.getElementById("status").innerText = "Recording stopped.";
+      } else {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.ondataavailable = event => {
+          audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          sendAudioToServer(audioBlob);
+          audioChunks = [];
+        };
+
+        mediaRecorder.start();
+        document.getElementById("status").innerText = "Recording...";
+      }
+
+      isRecording = !isRecording;
+    }
+
+    async function sendAudioToServer(audioBlob) {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'audio.wav');
+
+      const response = await fetch('http://127.0.0.1:8000/transcribe/', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      document.getElementById("transcription").innerText = data.transcription;
+      document.getElementById("intent").innerText = "Intent: " + data.intent;
+    }
+  </script>
+</head>
+<body>
+  <h1>Voice Assistant</h1>
+  <button onclick="toggleRecording()">
+    <span id="recordButton">Start Recording</span>
+  </button>
+  <p id="status"></p>
+  <p id="transcription"></p>
+  <p id="intent"></p>
+</body>
+</html>
