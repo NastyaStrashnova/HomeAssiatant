@@ -1,3 +1,4 @@
+
 from model_loader import intent_model
 from sentence_transformers import util
 
@@ -45,6 +46,19 @@ known_intents = {
 
 }
 
+def resolve_ambiguous_intent(base_intent):
+    # Context-aware resolution
+    if base_intent == "heat_on" and device_states["fan"] == 1:
+        return "fan_off"
+    elif base_intent == "fan_on" and device_states["heater"] == 1:
+        return "heat_off"
+    elif base_intent == "heat_off" and device_states["fan"] == 0:
+        return "fan_on"
+    elif base_intent == "fan_off" and device_states["heater"] == 0:
+        return "heat_on"
+    return base_intent
+
+
 def detect_intent(text, threshold=0.5):
     input_embedding = intent_model.encode(text, convert_to_tensor=True)
     best_intent, best_score = None, 0
@@ -58,4 +72,10 @@ def detect_intent(text, threshold=0.5):
             best_score = max_score
             best_intent = intent
 
-    return best_intent if best_score >= threshold else "unknown"
+    if best_score < threshold:
+        return "unknown"
+
+    # Add post-processing for context-aware resolution
+    resolved_intent = resolve_ambiguous_intent(best_intent)
+    return resolved_intent
+
