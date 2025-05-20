@@ -79,3 +79,27 @@ def detect_intent(text, threshold=0.5):
     resolved_intent = resolve_ambiguous_intent(best_intent)
     return resolved_intent
 
+
+def apply_intent(intent):
+    if intent == "fan_on":
+        device_states["fan"] = 1
+    elif intent == "fan_off":
+        device_states["fan"] = 0
+    elif intent == "heat_on":
+        device_states["heater"] = 1
+    elif intent == "heat_off":
+        device_states["heater"] = 0
+    elif intent == "lights_on":
+        device_states["lights"] = 1
+    elif intent == "lights_off":
+        device_states["lights"] = 0
+    elif intent == "music_on":
+        device_states["music"] = 1
+    elif intent == "music_off":
+        device_states["music"] = 0
+    elif intent == "volume_up":
+        device_states["volume"] = min(10, device_states["volume"] + 1)
+    elif intent == "volume_down":
+        device_states["volume"] = max(0, device_states["volume"] - 1)
+
+
