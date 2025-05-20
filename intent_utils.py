@@ -18,6 +18,31 @@ known_intents = {
         "turn off the fan", "it's cold", "stop the fan", "fan off please",
         "kill the fan", "enough fan"
     ]
+    "music_on": [
+    "play some music", "start the music", "music on", 
+    "i want to hear something", "let’s jam", "turn on the tunes"
+    ],
+    "music_off": [
+        "stop the music", "music off", "turn off the tunes", 
+        "kill the music", "quiet time", "enough music"
+    ]
+    "volume_up": [
+        "make it louder", "turn it up", "increase the volume", 
+        "i can't hear", "volume up", "raise the sound"
+    ],
+    "volume_down": [
+        "make it quieter", "turn it down", "lower the volume", 
+        "it's too loud", "volume down", "reduce the sound"
+    ]
+    "heat_on": [
+        "turn on the heater", "it's cold in here", "warm it up", 
+        "start heating", "i need warmth"
+    ],
+    "heat_off": [
+        "turn off the heater", "too warm", "stop the heating", 
+        "cool it down", "kill the heat"
+    ]
+
 }
 
 def detect_intent(text, threshold=0.5):
