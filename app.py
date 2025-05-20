@@ -25,5 +25,6 @@ async def transcribe_and_detect(file: UploadFile = File(...)):
         full_text = " ".join([seg.text for seg in segments])
 
         intent = detect_intent(full_text)
+        apply_intent(intent)
 
-    return {"transcription": full_text, "intent": intent}
+    return {"transcription": full_text, "intent": intent, "states": device_states}
