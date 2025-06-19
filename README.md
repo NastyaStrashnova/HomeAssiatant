@@ -9,4 +9,5 @@ This is a lightweight voice assistant that understands indirect speech commands 
 5) Resolves ambiguous intents contextually based on current states
 6) FastAPI-based API with optional frontend
 
-
+## Example usage:
+<img width="546" alt="Знімок екрана 2025-06-19 о 18 23 16" src="https://github.com/user-attachments/assets/b264fc00-7d77-4973-bbcd-149a7d78def1" />
