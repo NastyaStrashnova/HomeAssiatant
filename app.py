@@ -3,16 +3,18 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from pathlib import Path
 from model_loader import whisper_model
-from intent_utils import detect_intent
-import soundfile as sf
+from intent_utils import detect_intent, apply_intent, device_states
 import tempfile
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
+#app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
 @app.get("/", response_class=HTMLResponse)
 async def get_html():
-    with open("test.html", "r") as file:
+    with open("index.html", "r") as file:
         return HTMLResponse(content=file.read())
+
 
 @app.post("/transcribe/")
 async def transcribe_and_detect(file: UploadFile = File(...)):
@@ -27,4 +29,8 @@ async def transcribe_and_detect(file: UploadFile = File(...)):
         intent = detect_intent(full_text)
         apply_intent(intent)
 
-    return {"transcription": full_text, "intent": intent, "states": device_states}
+    return {
+        "transcription": full_text,
+        "intent": intent,
+        "states": device_states  # This already includes all device states
+    }

@@ -3,59 +3,273 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voice Assistant loser</title>
+  <title>Voice Assistant</title>
+  <style>
+    /* Modern Apple-like UI */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f7;
+      color: #1c1c1e;
+    }
+    
+    h1 {
+      color: #000;
+      text-align: center;
+      font-weight: 600;
+    }
+    
+    /* Recording Button */
+    #recordButton {
+      display: block;
+      margin: 20px auto;
+      padding: 12px 24px;
+      background-color: #007AFF;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    #recordButton:hover {
+      background-color: #0066CC;
+    }
+    
+    #recordButton.recording {
+      background-color: #FF3B30;
+    }
+    
+    #recordButton.recording:hover {
+      background-color: #E0352B;
+    }
+    
+    /* Status Message */
+    #status {
+      text-align: center;
+      margin: 15px 0;
+      padding: 10px;
+      color: #636366;
+      font-size: 14px;
+    }
+    
+    /* Result Boxes */
+    .result {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 16px 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .result strong {
+      font-weight: 600;
+    }
+    
+    /* Apple-like Toggle Switches */
+    .device-states {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .device-state {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .device-state:last-child {
+      border-bottom: none;
+    }
+    
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 52px;
+      height: 32px;
+    }
+    
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #e5e5ea;
+      transition: .4s;
+      border-radius: 16px;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 28px;
+      width: 28px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    
+    input:checked + .slider {
+      background-color: #34C759;
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+  </style>
+</head>
+<body>
+  <h1>Voice Assistant</h1>
+  
+  <button id="recordButton" onclick="toggleRecording()">
+    <span id="buttonText">Start Recording</span>
+  </button>
+  
+  <div id="status" class="status">Ready to record</div>
+  
+  <div class="result">
+    <strong>Transcription:</strong>
+    <p id="transcription">Your speech will appear here...</p>
+  </div>
+  
+  <div class="result">
+    <strong>Detected Intent:</strong>
+    <p id="intent">Intent will be displayed here</p>
+  </div>
+  
+  <div class="device-states">
+    <h3>Device States</h3>
+    <div class="device-state">
+      <span>Lights</span>
+      <label class="switch">
+        <input type="checkbox" id="lights-toggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="device-state">
+      <span>Fan</span>
+      <label class="switch">
+        <input type="checkbox" id="fan-toggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="device-state">
+      <span>Heater</span>
+      <label class="switch">
+        <input type="checkbox" id="heater-toggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="device-state">
+      <span>Music</span>
+      <label class="switch">
+        <input type="checkbox" id="music-toggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
   <script>
     let isRecording = false;
     let mediaRecorder;
     let audioChunks = [];
 
     async function toggleRecording() {
+      const button = document.getElementById("recordButton");
+      const buttonText = document.getElementById("buttonText");
+      const status = document.getElementById("status");
+      
       if (isRecording) {
         mediaRecorder.stop();
-        document.getElementById("status").innerText = "Recording stopped.";
+        button.classList.remove("recording");
+        buttonText.innerText = "Start Recording";
+        status.innerText = "Processing your speech...";
       } else {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
 
-        mediaRecorder.ondataavailable = event => {
-          audioChunks.push(event.data);
-        };
+          mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+          };
 
-        mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-          const audioUrl = URL.createObjectURL(audioBlob);
-          sendAudioToServer(audioBlob);
-          audioChunks = [];
-        };
+          mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            sendAudioToServer(audioBlob);
+            audioChunks = [];
+          };
 
-        mediaRecorder.start();
-        document.getElementById("status").innerText = "Recording...";
+          mediaRecorder.start();
+          button.classList.add("recording");
+          buttonText.innerText = "Stop Recording";
+          status.innerText = "Recording... Speak now";
+        } catch (error) {
+          console.error("Error accessing microphone:", error);
+          status.innerText = "Error accessing microphone";
+        }
       }
 
       isRecording = !isRecording;
     }
 
-    async function sendAudioToServer(audioBlob) {
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'audio.wav');
+    function updateDeviceStates(states) {
+      document.getElementById('lights-toggle').checked = states.lights;
+      document.getElementById('fan-toggle').checked = states.fan;
+      document.getElementById('heater-toggle').checked = states.heater;
+      document.getElementById('music-toggle').checked = states.music;
+    }
 
-      const response = await fetch('http://127.0.0.1:8000/transcribe/', {
-        method: 'POST',
-        body: formData
-      });
-      const data = await response.json();
-      document.getElementById("transcription").innerText = data.transcription;
-      document.getElementById("intent").innerText = "Intent: " + data.intent;
+    async function sendAudioToServer(audioBlob) {
+      const status = document.getElementById("status");
+      const transcription = document.getElementById("transcription");
+      const intent = document.getElementById("intent");
+      
+      try {
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'audio.wav');
+
+        const response = await fetch('http://127.0.0.1:8000/transcribe/', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        const data = await response.json();
+        transcription.innerText = data.transcription || "No transcription returned";
+        intent.innerText = data.intent ? "Intent: " + data.intent : "No intent detected";
+        status.innerText = "Processing complete";
+        
+        if (data.states) {
+          updateDeviceStates(data.states);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        transcription.innerText = "Error processing audio";
+        intent.innerText = "Intent: Error";
+        status.innerText = "Failed to process";
+      }
     }
   </script>
-</head>
-<body>
-  <h1>Voice Assistant</h1>
-  <button onclick="toggleRecording()">
-    <span id="recordButton">Start Recording</span>
-  </button>
-  <p id="status"></p>
-  <p id="transcription"></p>
-  <p id="intent"></p>
 </body>
 </html>
