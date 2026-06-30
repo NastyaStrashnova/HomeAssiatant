@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from pathlib import Path
 from model_loader import whisper_model
-from intent_utils import detect_intent, apply_intent, device_states
+from intent_utils import run_agent, device_states
 import tempfile
 
 app = FastAPI()
@@ -26,11 +26,10 @@ async def transcribe_and_detect(file: UploadFile = File(...)):
         segments, _ = whisper_model.transcribe(tmp.name)
         full_text = " ".join([seg.text for seg in segments])
 
-        intent = detect_intent(full_text)
-        apply_intent(intent)
+        result = run_agent(full_text)
 
     return {
         "transcription": full_text,
-        "intent": intent,
-        "states": device_states  # This already includes all device states
+        "changes": result["changes"],   # only the states that changed this turn
+        "states": result["states"]      # full current device state
     }

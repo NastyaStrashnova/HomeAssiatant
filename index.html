@@ -257,7 +257,10 @@
         
         const data = await response.json();
         transcription.innerText = data.transcription || "No transcription returned";
-        intent.innerText = data.intent ? "Intent: " + data.intent : "No intent detected";
+        const changeKeys = data.changes ? Object.keys(data.changes) : [];
+        intent.innerText = changeKeys.length
+          ? "Changed: " + changeKeys.map(k => `${k} -> ${data.changes[k] ? "on" : "off"}`).join(", ")
+          : "No device change detected";
         status.innerText = "Processing complete";
         
         if (data.states) {
