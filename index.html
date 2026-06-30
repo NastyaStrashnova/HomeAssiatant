@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voice Assistant</title>
+  <title>Kiki Voice Assistant</title>
   <style>
     /* Modern Apple-like UI */
     body {
@@ -14,17 +14,32 @@
       background-color: #f5f5f7;
       color: #1c1c1e;
     }
-    
+
     h1 {
       color: #000;
       text-align: center;
       font-weight: 600;
     }
-    
-    /* Recording Button */
-    #recordButton {
+
+    /* Kiki character */
+    #kiki-character {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 160px;
+      margin: 10px auto 0;
+    }
+
+    #kiki-character img {
+      max-height: 160px;
+      max-width: 160px;
+      display: none; /* toggled on via JS */
+    }
+
+    /* Enable button - only needed once, to grant mic permission */
+    #enableButton {
       display: block;
-      margin: 20px auto;
+      margin: 10px auto 20px;
       padding: 12px 24px;
       background-color: #007AFF;
       color: white;
@@ -35,19 +50,19 @@
       cursor: pointer;
       transition: background-color 0.2s;
     }
-    
-    #recordButton:hover {
+
+    #enableButton:hover {
       background-color: #0066CC;
     }
-    
-    #recordButton.recording {
-      background-color: #FF3B30;
+
+    #enableButton.awake {
+      background-color: #34C759;
     }
-    
-    #recordButton.recording:hover {
-      background-color: #E0352B;
+
+    #enableButton.hidden {
+      display: none;
     }
-    
+
     /* Status Message */
     #status {
       text-align: center;
@@ -56,7 +71,7 @@
       color: #636366;
       font-size: 14px;
     }
-    
+
     /* Result Boxes */
     .result {
       background: white;
@@ -65,11 +80,11 @@
       margin: 16px 0;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
-    
+
     .result strong {
       font-weight: 600;
     }
-    
+
     /* Apple-like Toggle Switches */
     .device-states {
       background: white;
@@ -78,7 +93,7 @@
       margin-top: 20px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
-    
+
     .device-state {
       display: flex;
       justify-content: space-between;
@@ -86,24 +101,24 @@
       padding: 12px 0;
       border-bottom: 1px solid #f0f0f0;
     }
-    
+
     .device-state:last-child {
       border-bottom: none;
     }
-    
+
     .switch {
       position: relative;
       display: inline-block;
       width: 52px;
       height: 32px;
     }
-    
+
     .switch input {
       opacity: 0;
       width: 0;
       height: 0;
     }
-    
+
     .slider {
       position: absolute;
       cursor: pointer;
@@ -115,7 +130,7 @@
       transition: .4s;
       border-radius: 16px;
     }
-    
+
     .slider:before {
       position: absolute;
       content: "";
@@ -128,35 +143,40 @@
       border-radius: 50%;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     }
-    
+
     input:checked + .slider {
       background-color: #34C759;
     }
-    
+
     input:checked + .slider:before {
       transform: translateX(20px);
     }
   </style>
 </head>
 <body>
-  <h1>Voice Assistant</h1>
-  
-  <button id="recordButton" onclick="toggleRecording()">
-    <span id="buttonText">Start Recording</span>
+  <h1>Say "Hey Kiki" to activate</h1>
+
+  <div id="kiki-character">
+    <img id="kiki-calm" src="static/kiki-calm.png" alt="Kiki calm1">
+    <img id="kiki-thinking" src="static/kiki-thinking.png" alt="Kiki thinking1">
+  </div>
+
+  <button id="enableButton" onclick="enableAssistant()">
+    <span id="enableButtonText">Enable Kiki (grant mic access)</span>
   </button>
-  
-  <div id="status" class="status">Ready to record</div>
-  
+
+  <div id="status" class="status">Click the button above to let Kiki start listening</div>
+
   <div class="result">
     <strong>Transcription:</strong>
     <p id="transcription">Your speech will appear here...</p>
   </div>
-  
+
   <div class="result">
     <strong>Detected Intent:</strong>
     <p id="intent">Intent will be displayed here</p>
   </div>
-  
+
   <div class="device-states">
     <h3>Device States</h3>
     <div class="device-state">
@@ -190,79 +210,210 @@
   </div>
 
   <script>
-    let isRecording = false;
-    let mediaRecorder;
+    // ------------------------------------------------------------------
+    // Config
+    // ------------------------------------------------------------------
+    const WAKE_WORD = "hey kiki";
+    const SLEEP_TIMEOUT_MS = 60 * 1000; // go back to sleep after 60s of silence
+    const TRANSCRIBE_URL = "http://127.0.0.1:8000/transcribe/";
+
+    // ------------------------------------------------------------------
+    // State
+    // ------------------------------------------------------------------
+    let recognition = null;
+    let mediaRecorder = null;
+    let micStream = null;
     let audioChunks = [];
+    let isAwake = false;       // true once "Hey Kiki" has been heard, until 60s of silence
+    let isProcessing = false;  // true while a command is being sent/processed
+    let lastActivity = Date.now();
+    let sleepCheckInterval = null;
 
-    async function toggleRecording() {
-      const button = document.getElementById("recordButton");
-      const buttonText = document.getElementById("buttonText");
-      const status = document.getElementById("status");
-      
-      if (isRecording) {
-        mediaRecorder.stop();
-        button.classList.remove("recording");
-        buttonText.innerText = "Start Recording";
-        status.innerText = "Processing your speech...";
+    // ------------------------------------------------------------------
+    // Kiki character + status helpers
+    // ------------------------------------------------------------------
+    function showKiki(mode) {
+      // mode: 'calm' or 'thinking'
+      document.getElementById('kiki-calm').style.display = mode === 'calm' ? 'block' : 'none';
+      document.getElementById('kiki-thinking').style.display = mode === 'thinking' ? 'block' : 'none';
+    }
+
+    function setStatus(text) {
+      document.getElementById("status").innerText = text;
+    }
+
+    function refreshAwakeUi() {
+      const button = document.getElementById("enableButton");
+      if (isProcessing) {
+        showKiki('thinking');
+        setStatus("Kiki is thinking...");
+        return;
+      }
+      showKiki('calm');
+      if (isAwake) {
+        button.classList.add("awake");
+        setStatus("Listening for your command...");
       } else {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream);
+        button.classList.remove("awake");
+        setStatus('Say "Hey Kiki" to activate');
+      }
+    }
 
-          mediaRecorder.ondataavailable = event => {
-            audioChunks.push(event.data);
-          };
+    // ------------------------------------------------------------------
+    // Setup: mic access, continuous recording, continuous speech recognition
+    // ------------------------------------------------------------------
+    async function enableAssistant() {
+      const button = document.getElementById("enableButton");
+      button.disabled = true;
+      document.getElementById("enableButtonText").innerText = "Kiki is listening...";
+      button.classList.add("hidden");
 
-          mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-            sendAudioToServer(audioBlob);
-            audioChunks = [];
-          };
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStream = stream;
 
-          mediaRecorder.start();
-          button.classList.add("recording");
-          buttonText.innerText = "Stop Recording";
-          status.innerText = "Recording... Speak now";
-        } catch (error) {
-          console.error("Error accessing microphone:", error);
-          status.innerText = "Error accessing microphone";
+        // Each utterance gets its own MediaRecorder so the resulting blob is
+        // always a self-contained, valid WebM file (a WebM container header
+        // is only emitted at the start of a recording, so reusing/clearing
+        // chunks from one long-running recorder produces invalid fragments).
+        startNewRecorder();
+
+        startSpeechRecognition();
+
+        sleepCheckInterval = setInterval(checkSleepTimeout, 1000);
+        refreshAwakeUi();
+      } catch (error) {
+        console.error("Error accessing microphone:", error);
+        setStatus("Error accessing microphone - check browser permissions");
+        button.classList.remove("hidden");
+        button.disabled = false;
+      }
+    }
+
+    function startNewRecorder() {
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(micStream);
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunks.push(event.data);
         }
+      };
+      mediaRecorder.start();
+    }
+
+    function startSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        setStatus("Your browser doesn't support always-on speech recognition - try Chrome");
+        return;
       }
 
-      isRecording = !isRecording;
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (event) => {
+        const result = event.results[event.results.length - 1];
+        if (!result.isFinal) return;
+
+        const transcript = result[0].transcript.trim();
+        const lower = transcript.toLowerCase();
+        const containsWake = lower.includes(WAKE_WORD);
+
+        if (containsWake && !isAwake) {
+          isAwake = true;
+          refreshAwakeUi();
+        }
+
+        // Any finished utterance while awake (including the one that contains
+        // the wake word itself, e.g. "Hey Kiki turn on the lights") is sent to
+        // the backend so Whisper + the agent can act on it.
+        if (isAwake) {
+          lastActivity = Date.now();
+          sendBufferedAudio();
+        }
+        // If not awake, just let the recorder keep running quietly; we never
+        // call sendBufferedAudio so this audio is simply discarded the next
+        // time we restart the recorder.
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+      };
+
+      // Browsers stop recognition after a while on their own - just restart it
+      // so listening for "Hey Kiki" never actually ends.
+      recognition.onend = () => {
+        try {
+          recognition.start();
+        } catch (e) {
+          // Already starting/started - ignore.
+        }
+      };
+
+      recognition.start();
+    }
+
+    function checkSleepTimeout() {
+      if (isAwake && !isProcessing && Date.now() - lastActivity > SLEEP_TIMEOUT_MS) {
+        isAwake = false;
+        startNewRecorder(); // drop any stray buffered audio
+        refreshAwakeUi();
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Sending audio to the backend
+    // ------------------------------------------------------------------
+    function sendBufferedAudio() {
+      if (!mediaRecorder || mediaRecorder.state !== "recording") return;
+      // Stopping flushes a final dataavailable event and finalizes the WebM
+      // file (duration/cues), giving us one complete, valid recording.
+      mediaRecorder.onstop = () => {
+        if (audioChunks.length > 0) {
+          const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+          sendAudioToServer(audioBlob);
+        }
+        // Immediately start a new recorder so we keep capturing while the
+        // previous utterance is uploaded/processed.
+        startNewRecorder();
+      };
+      mediaRecorder.stop();
     }
 
     function updateDeviceStates(states) {
-      document.getElementById('lights-toggle').checked = states.lights;
-      document.getElementById('fan-toggle').checked = states.fan;
-      document.getElementById('heater-toggle').checked = states.heater;
-      document.getElementById('music-toggle').checked = states.music;
+      document.getElementById('lights-toggle').checked = !!states.lights;
+      document.getElementById('fan-toggle').checked = !!states.fan;
+      document.getElementById('heater-toggle').checked = !!states.heater;
+      document.getElementById('music-toggle').checked = !!states.music;
     }
 
     async function sendAudioToServer(audioBlob) {
-      const status = document.getElementById("status");
       const transcription = document.getElementById("transcription");
       const intent = document.getElementById("intent");
-      
+
+      isProcessing = true;
+      refreshAwakeUi();
+
       try {
         const formData = new FormData();
-        formData.append('file', audioBlob, 'audio.wav');
+        formData.append('file', audioBlob, 'audio.webm');
 
-        const response = await fetch('http://127.0.0.1:8000/transcribe/', {
+        const response = await fetch(TRANSCRIBE_URL, {
           method: 'POST',
           body: formData
         });
-        
+
         if (!response.ok) throw new Error('Network response was not ok');
-        
+
         const data = await response.json();
         transcription.innerText = data.transcription || "No transcription returned";
         const changeKeys = data.changes ? Object.keys(data.changes) : [];
         intent.innerText = changeKeys.length
           ? "Changed: " + changeKeys.map(k => `${k} -> ${data.changes[k] ? "on" : "off"}`).join(", ")
           : "No device change detected";
-        status.innerText = "Processing complete";
-        
+
         if (data.states) {
           updateDeviceStates(data.states);
         }
@@ -270,9 +421,15 @@
         console.error("Error:", error);
         transcription.innerText = "Error processing audio";
         intent.innerText = "Intent: Error";
-        status.innerText = "Failed to process";
+      } finally {
+        isProcessing = false;
+        lastActivity = Date.now();
+        refreshAwakeUi();
       }
     }
+
+    // Initial render before the assistant is enabled.
+    refreshAwakeUi();
   </script>
 </body>
 </html>

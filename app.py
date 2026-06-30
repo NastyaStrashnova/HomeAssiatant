@@ -7,7 +7,9 @@ from intent_utils import run_agent, device_states
 import tempfile
 
 app = FastAPI()
-#app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+#app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -18,7 +20,7 @@ async def get_html():
 
 @app.post("/transcribe/")
 async def transcribe_and_detect(file: UploadFile = File(...)):
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
         audio_bytes = await file.read()
         tmp.write(audio_bytes)
         tmp.flush()
