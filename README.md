@@ -1,5 +1,5 @@
 # 🧠 Voice-Controlled Home Assistant (with Indirect Intent Recognition)
-This is a lightweight voice assistant that understands indirect speech commands using speech-to-text transcription and sentence embedding-based intent detection. Built with FastAPI, Whisper, and SentenceTransformers, it controls virtual devices like lights, fan, heater, and music through natural voice interactions.
+This is a lightweight voice assistant that understands indirect speech commands using speech-to-text transcription and sentence embedding-based intent detection. Built with FastAPI, Whisper,SentenceTransformers and AI Agent, it controls virtual devices like lights, fan, heater, and music through natural voice interactions.
 
 ## ✨ Features
 1) Real-time voice input via microphone
