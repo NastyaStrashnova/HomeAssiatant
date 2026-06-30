@@ -10,4 +10,5 @@ This is a lightweight voice assistant that understands indirect speech commands 
 6) FastAPI-based API with optional frontend
 
 ## Example usage:
-<img width="546" alt="Знімок екрана 2025-06-19 о 18 23 16" src="https://github.com/user-attachments/assets/b264fc00-7d77-4973-bbcd-149a7d78def1" />
+<img width="459" height="590" alt="Знімок екрана 2026-06-30 о 18 12 48" src="https://github.com/user-attachments/assets/1163c46e-9402-4e5f-aa98-33a300bed452" />
+
