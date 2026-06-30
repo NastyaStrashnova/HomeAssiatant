@@ -9,8 +9,8 @@ from threading import Thread
 # Parameters for recording
 SAMPLE_RATE = 16000
 CHANNELS = 1
-DURATION = 3  # seconds per request, adjust as needed
-FASTAPI_URL = "http://127.0.0.1:8000/transcribe/"  # Update with your server URL
+DURATION = 3  
+FASTAPI_URL = "http://127.0.0.1:8000/transcribe/"  
 
 def record_audio():
     """Function to record audio in real time and send to FastAPI server."""
